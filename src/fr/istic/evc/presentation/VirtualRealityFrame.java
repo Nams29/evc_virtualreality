@@ -1,11 +1,13 @@
 package fr.istic.evc.presentation;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GraphicsConfiguration;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+import javax.media.j3d.BoundingSphere;
 import javax.media.j3d.BranchGroup;
 import javax.media.j3d.Canvas3D;
 import javax.media.j3d.Transform3D;
@@ -13,9 +15,13 @@ import javax.media.j3d.TransformGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.vecmath.Point3d;
 import javax.vecmath.Vector3d;
-import javax.xml.crypto.dsig.Transform;
 
+import com.sun.j3d.utils.picking.behaviors.PickRotateBehavior;
+import com.sun.j3d.utils.picking.behaviors.PickTranslateBehavior;
+import com.sun.j3d.utils.picking.behaviors.PickZoomBehavior;
 import com.sun.j3d.utils.universe.SimpleUniverse;
 
 import fr.istic.evc.controller.CVirtualReality;
@@ -30,6 +36,8 @@ public class VirtualRealityFrame extends JFrame {
 	
 	private SimpleUniverse universe;
 	
+	private Canvas3D canvas3d;
+	
 	// Buttons
 	private JButton rotateXPositiveBtn;
 	private JButton rotateXNegativeBtn;
@@ -43,6 +51,14 @@ public class VirtualRealityFrame extends JFrame {
 	private JButton moveDownBtn;
 	private JButton moveLeftBtn;
 	private JButton moveRightBtn;
+	
+	private JTextField absPosX;
+	private JTextField absPosY;
+	private JTextField absPosZ;
+
+	private JTextField absRotX;
+	private JTextField absRotY;
+	private JTextField absRotZ;
 
 	public VirtualRealityFrame(CVirtualReality ctrl) {
 		super(FRAME_TITLE);
@@ -64,7 +80,7 @@ public class VirtualRealityFrame extends JFrame {
 		GraphicsConfiguration config = SimpleUniverse
 				.getPreferredConfiguration();
 		
-		Canvas3D canvas3d = new Canvas3D(config);
+		canvas3d = new Canvas3D(config);
 		
 		BranchGroup scene = createSceneGraph();
 		
@@ -72,7 +88,7 @@ public class VirtualRealityFrame extends JFrame {
 		this.universe.getViewingPlatform().setNominalViewingTransform();
 		this.universe.addBranchGraph(scene);
 
-		JPanel leftPanel = new JPanel(new GridLayout(6, 1));
+		JPanel leftPanel = new JPanel(new GridLayout(0, 1));
 		moveForwardBtn = new JButton("Move Forward");
 		moveBackwardBtn = new JButton("Move Backward");
 		moveUpBtn = new JButton("Move Up");
@@ -85,7 +101,67 @@ public class VirtualRealityFrame extends JFrame {
 		leftPanel.add(moveDownBtn);
 		leftPanel.add(moveLeftBtn);
 		leftPanel.add(moveRightBtn);
+		
+		JPanel absPosPanel = new JPanel(new FlowLayout());
+		this.absPosX = new JTextField();
+		this.absPosY = new JTextField();
+		this.absPosZ = new JTextField();
+		this.absPosX.setToolTipText("X");
+		this.absPosY.setToolTipText("Y");
+		this.absPosZ.setToolTipText("Z");
+		this.absPosX.setColumns(3);
+		this.absPosY.setColumns(3);
+		this.absPosZ.setColumns(3);
+		
+		JButton absPosBtn = new JButton("Go");
+		absPosBtn.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.p2cMoveAbsolute(Float.valueOf(absPosX.getText()), 
+										   Float.valueOf(absPosY.getText()), 
+										   Float.valueOf(absPosZ.getText()));
+			}
+		});
+		
+		absPosPanel.add(absPosX);
+		absPosPanel.add(absPosY);
+		absPosPanel.add(absPosZ);
+		absPosPanel.add(absPosBtn);
+		
+		JPanel absRotPanel = new JPanel(new FlowLayout());
+		this.absRotX = new JTextField();
+		this.absRotY = new JTextField();
+		this.absRotZ = new JTextField();
+		this.absRotX.setToolTipText("X");
+		this.absRotY.setToolTipText("Y");
+		this.absRotZ.setToolTipText("Z");
+		this.absRotX.setColumns(3);
+		this.absRotY.setColumns(3);
+		this.absRotZ.setColumns(3);
 
+		JButton absRotBtn = new JButton("Go");
+		absRotBtn.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.p2cRotateAbsolute(Float.valueOf(absRotX.getText()), 
+											 Float.valueOf(absRotY.getText()), 
+											 Float.valueOf(absRotZ.getText()));
+			}
+		});
+		
+		absRotPanel.add(absRotX);
+		absRotPanel.add(absRotY);
+		absRotPanel.add(absRotZ);
+		absRotPanel.add(absRotBtn);
+		
+		JPanel absPanel = new JPanel(new GridLayout(2, 1));
+		absPanel.add(absPosPanel);
+		absPanel.add(absRotPanel);
+		
+		leftPanel.add(absPanel);
+		
 		JPanel bottomPanel = new JPanel(new GridLayout(4, 1));
 		rotateXNegativeBtn = new JButton("Rotate Upward");
 		rotateXPositiveBtn = new JButton("Rotate Downward");
@@ -99,7 +175,7 @@ public class VirtualRealityFrame extends JFrame {
 		bottomPanel.add(rotateYNegativeBtn);
 		bottomPanel.add(rotateZPositiveBtn);
 		bottomPanel.add(rotateZNegativeBtn);
-
+		
 		this.setLayout(new BorderLayout());
 		this.add(leftPanel, BorderLayout.WEST);
 		this.add(canvas3d, BorderLayout.CENTER);
@@ -195,17 +271,16 @@ public class VirtualRealityFrame extends JFrame {
 		// Cube
 		CubeVO cube = new CubeVO(0.2f);
 		cube.setCapability(TransformGroup.ALLOW_TRANSFORM_WRITE);
-		
+		cube.setCapability(TransformGroup.ENABLE_PICK_REPORTING);
 		objRoot.addChild(cube);
 		
-		// Rotation
-		/*Transform3D yAxis = new Transform3D();
-		Alpha rotationAlpha = new Alpha(-1, 2000);
-		RotationInterpolator rotator = new RotationInterpolator(rotationAlpha,
-				cube, yAxis, 0.0f, (float) Math.PI * 2.0f);
-		BoundingSphere bounds = new BoundingSphere();
-		rotator.setSchedulingBounds(bounds);
-		cube.addChild(rotator);*/
+		// Behaviour
+		objRoot.addChild(new PickRotateBehavior(objRoot, canvas3d, 
+				new BoundingSphere(new Point3d(0, 0, 0), 0.2)));
+		objRoot.addChild(new PickTranslateBehavior(objRoot, canvas3d, 
+				new BoundingSphere(new Point3d(0, 0, 0), 0.2)));
+		objRoot.addChild(new PickZoomBehavior(objRoot, canvas3d, 
+				new BoundingSphere(new Point3d(0, 0, 0), 0.2)));
 		
 		// Compile
 		objRoot.compile();
