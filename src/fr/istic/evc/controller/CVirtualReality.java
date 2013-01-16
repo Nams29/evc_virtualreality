@@ -1,17 +1,17 @@
 package fr.istic.evc.controller;
 
 import fr.istic.evc.abstraction.VirtualReality;
-import fr.istic.evc.presentation.VirtualRealityFrame;
+import fr.istic.evc.presentation.PVirtualReality;
 
 public class CVirtualReality extends VirtualReality {
 	
-	private VirtualRealityFrame presentation;
+	private PVirtualReality presentation;
 
 	public CVirtualReality() {
-		this.presentation = new VirtualRealityFrame(this);
+		this.presentation = new PVirtualReality(this);
 	}
 	
-	public VirtualRealityFrame getPresentation() {
+	public PVirtualReality getPresentation() {
 		return presentation;
 	}
 
